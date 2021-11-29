@@ -16,6 +16,23 @@ describe('Should test at a functional level', () => {
         // cy.resetApp()
     })
 
+    it('Should test the responsiveness', () => {
+        cy.get('[data-test=menu-home]').should('exist')
+            .and('be.visible')
+        
+        cy.viewport(500, 750)
+        cy.get('[data-test=menu-home]').should('exist')
+        .and('be.not.visible')
+
+        cy.viewport('iphone-5')
+        cy.get('[data-test=menu-home]').should('exist')
+        .and('be.not.visible')
+
+        cy.viewport('ipad-2')
+        cy.get('[data-test=menu-home]').should('exist')
+        .and('be.visible')
+    });
+
     it('Should create an account', () => {
 
         cy.intercept('POST', '/contas', 
@@ -155,14 +172,15 @@ describe('Should test at a functional level', () => {
         cy.get(loc.message).should('contain','sucesso')        
     })
 
-    it.only('Should validate data and to create an account', () => {
-
-        cy.intercept('POST', '/contas', 
-            { body: { id: 3, nome: 'Conta de Teste', visivel: true, usuario_id: 1,
-             onRequest: (req) => {
-                expect(req.request.body.nome).to.be.empty
-                expect(req.request.headers).to.have.property('Authorization')}
-            }}).as('saveConta')
+    it('Should validate data and to create an account', () => {
+        cy.intercept('POST', '/contas', (req) => {
+            console.log(req)
+            expect(req.body.nome).to.be.empty
+            expect(req.headers).to.have.property('authorization')
+            req.reply( { statusCode: 200, 
+                body: { id: 3, nome: 'Conta de Teste Wagner', visivel: true, usuario_id: 1 }
+            })
+        }).as('saveConta')
             
         cy.acessarMenuConta()
 
@@ -175,4 +193,19 @@ describe('Should test at a functional level', () => {
         //cy.wait('@saveConta').its('request.body.nome').should('not.be.empty')
         cy.get(loc.message).should('contain','Conta inserida com sucesso!')
     })
+
+    it('Should test colors', () => {
+        cy.intercept('GET', '/extrato/**', [
+            { "conta": "Conta para movimentacoes", "id": 871301, "descricao": "Receita paga", "envolvido": "AAA", "observacao": null, "tipo": "REC", "data_transacao": "2021-11-17T03:00:00.000Z", "data_pagamento": "2021-11-17T03:00:00.000Z", "valor": "-1500.00", "status": true, "conta_id": 936732, "usuario_id": 25617, "transferencia_id": null, "parcelamento_id" :null },
+            { "conta": "Conta com movimentacao", "id": 871302, "descricao": "Receita pendente", "envolvido": "BBB", "observacao": null,"tipo": "REC", "data_transacao": "2021-11-17T03:00:00.000Z", "data_pagamento": "2021-11-17T03:00:00.000Z", "valor": "-1500.00", "status": false, "conta_id": 936733, "usuario_id": 25617, "transferencia_id": null, "parcelamento_id": null},
+            { "conta": "Conta para saldo", "id": 871303, "descricao": "Despesa paga", "envolvido": "CCC", "observacao": null, "tipo": "DESP", "data_transacao": "2021-11-17T03:00:00.000Z", "data_pagamento": "2021-11-17T03:00:00.000Z", "valor":"3500.00", "status": true, "conta_id": 936734, "usuario_id": 25617, "transferencia_id": null, "parcelamento_id": null},
+            { "conta": "Conta para saldo", "id":871304, "descricao": "Despesa pendente", "envolvido":"DDD","observacao":null,"tipo":"DESP","data_transacao":"2021-11-17T03:00:00.000Z","data_pagamento":"2021-11-17T03:00:00.000Z","valor":"-1000.00","status":false,"conta_id":936734,"usuario_id":25617,"transferencia_id":null,"parcelamento_id":null }])
+        cy.get(loc.menu.extrato).click();
+        cy.xpath(loc.extrato.fn_xp_linha('Receita paga')).should('have.class', 'receitaPaga')
+        cy.xpath(loc.extrato.fn_xp_linha('Receita pendente')).should('have.class', 'receitaPendente')
+        cy.xpath(loc.extrato.fn_xp_linha('Despesa paga')).should('have.class', 'despesaPaga')
+        cy.xpath(loc.extrato.fn_xp_linha('Despesa pendente')).should('have.class', 'despesaPendente')
+    });
+
+    
 })
